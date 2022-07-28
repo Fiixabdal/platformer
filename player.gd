@@ -5,7 +5,7 @@ export (int) var jump_speed = -180
 export (int) var gravity = 400
 export (int) var slide_speed = 400
 
-var veloctiy = Vector2.ZERO
+var velocity = Vector2.ZERO
 	
 export (float) var friction = 10
 export (float) var acceleration = 25
@@ -19,29 +19,62 @@ func _ready():
 	pass
 
 func update_anmation(anim):
-	 $AnimationPlayer.play(anim)
+	if velocity.x < -0:
+		$Sprite.flip_h = true
+	elif velocity.x > 0:
+		$Sprite.flip_h = false
+	match(anim):
+		state.FALL:
+			$AnimationPlayer.play("fall")
+		state.ATTACK:
+			$AnimationPlayer.play("attack")
+		state.IDLE:
+			$AnimationPlayer.play("idle")
+		state.JUMP:
+			$AnimationPlayer.play("jump")
+		state.PUSHING:
+			$AnimationPlayer.play("pushing")
+		state.ROLLING:
+			$AnimationPlayer.play("roll")
+		state.RUNNING:
+			$AnimationPlayer.play("running")
+			
+		
+	pass
 	
-func handle_state(state):
+# warning-ignore:shadowed_variable
+func handle_state(player_state):
+	print(state)
+	match(player_state):
+		state.STARTJUMP:
+			velocity.y = jump_speed
 	pass
 	
 func get_input():
 	var dir = Input.get_action_strength("right") - Input.get_action_strength("left")
 	if dir != 0:
-		veloctiy.x = move_toward(veloctiy.x, dir*speed, acceleration)
+		velocity.x = move_toward(velocity.x, dir*speed, acceleration)
 	else:
-		veloctiy.x = move_toward(veloctiy.x, 0, friction)
+		velocity.x = move_toward(velocity.x, 0, friction)
 		
 func _physics_process(delta):
 	get_input()
-	if veloctiy.x == Vector2.ZERO:
+	print(is_on_floor())
+	if velocity == Vector2.ZERO:     
 		player_state = state.IDLE
-	elif veloctiy.x != 0 and Input.is_action_just_pressed("jump") and is_on_floor():
+	if Input.is_action_just_pressed("jump") and is_on_floor():
 		player_state = state.STARTJUMP
-	elif veloctiy.x != 0:
+	elif velocity.x != 0:
 		player_state = state.RUNNING
 	
 	if not is_on_floor():
-		if veloctiy.y < 0:
-			state.JUMP
-		if veloctiy.y > 0:
+		if velocity.y < 0:
+			player_state = state.JUMP
+		if velocity.y > 0:
 			player_state = state.FALL
+			
+	handle_state(player_state)
+	update_anmation(player_state)
+	#set gravity
+	velocity.y += gravity * delta
+	velocity = move_and_slide(velocity, Vector2.UP)
